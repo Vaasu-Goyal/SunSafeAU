@@ -1,29 +1,89 @@
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { SafeAreaView, StyleSheet } from "react-native";
+
+import Header from "@/components/Header";
+import UVCard from "@/components/Uvcard";
+import AdviceCard from "@/components/Advicecard";
+
+function getUvLevel(uv: number) {
+  if (uv <= 2) return "Low";
+  if (uv <= 5) return "Moderate";
+  if (uv <= 7) return "High";
+  if (uv <= 10) return "Very High";
+  return "Extreme";
+}
+
+function getAdvice(uv: number): string[] {
+  if (uv <= 2) {
+    return [
+      "Enjoy the sunshine",
+      "Wear sunglasses",
+    ];
+  }
+
+  if (uv <= 5) {
+    return [
+      "Apply SPF 30+",
+      "Drink water",
+    ];
+  }
+
+  if (uv <= 7) {
+    return [
+      "Wear a hat",
+      "Apply SPF 50+",
+      "Stay hydrated",
+    ];
+  }
+
+  return [
+    "Avoid direct sunlight",
+    "Stay indoors if possible",
+    "Reapply sunscreen every 2 hours",
+  ];
+}
 
 export default function HomeScreen() {
+  const [uvIndex, setUvIndex] = useState(8);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  async function fetchUV() {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=-31.95&longitude=115.86&current=uv_index"
+      );
+
+      const data = await response.json();
+
+      setUvIndex(Math.round(data.current.uv_index));
+    } catch {
+      setError("Unable to fetch UV data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchUV();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.logo}>☀️</Text>
+      <Header />
 
-      <Text style={styles.title}>SunSafe AU</Text>
+      <UVCard
+        uvIndex={uvIndex}
+        loading={loading}
+        error={error}
+        level={getUvLevel(uvIndex)}
+        onIncrease={() => setUvIndex(Math.min(15, uvIndex + 1))}
+        onDecrease={() => setUvIndex(Math.max(0, uvIndex - 1))}
+      />
 
-      <Text style={styles.location}>Perth, WA</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>UV Index</Text>
-
-        <Text style={styles.uv}>11</Text>
-
-        <Text style={styles.level}>Very High</Text>
-      </View>
-
-      <View style={styles.adviceCard}>
-        <Text style={styles.advice}>✓ Apply Sunscreen SPF 50+</Text>
-
-        <Text style={styles.advice}>✓ Drink Water</Text>
-
-        <Text style={styles.advice}>✓ Seek Shade</Text>
-      </View>
+      <AdviceCard advice={getAdvice(uvIndex)} />
     </SafeAreaView>
   );
 }
@@ -32,69 +92,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffeb99",
-    alignItems: "center",
     justifyContent: "center",
     padding: 20,
-  },
-
-  logo: {
-    fontSize: 60,
-    marginBottom: 10,
-  },
-
-  title: {
-    fontSize: 36,
-    fontWeight: "bold",
-    color: "#1E293B",
-  },
-
-  location: {
-    fontSize: 18,
-    color: "#64748B",
-    marginBottom: 30,
-  },
-
-  card: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    padding: 25,
-    borderRadius: 20,
-    alignItems: "center",
-    marginBottom: 20,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-
-  label: {
-    fontSize: 18,
-    color: "#ffffff",
-  },
-
-  uv: {
-    fontSize: 72,
-    fontWeight: "bold",
-    color: "#E63946",
-  },
-
-  level: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#E63946",
-  },
-
-  adviceCard: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    borderRadius: 20,
-  },
-
-  advice: {
-    fontSize: 18,
-    marginVertical: 6,
-    color: "#334155",
   },
 });
