@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
-import { SafeAreaView, StyleSheet } from "react-native";
+import {useEffect, useState } from "react";
+import { StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as Location from "expo-location";
 
 import Header from "@/components/Header";
-import UVCard from "@/components/Uvcard";
+import UVCard from "@/components/UVcard";
 import AdviceCard from "@/components/Advicecard";
 
 function getUvLevel(uv: number) {
@@ -48,12 +50,14 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function fetchUV() {
+  const [locationName, setLocationName] = useState("Getting location...");
+
+  async function fetchUV(latitude: number, longitude: number) {
     try {
       setLoading(true);
 
       const response = await fetch(
-        "https://api.open-meteo.com/v1/forecast?latitude=-31.95&longitude=115.86&current=uv_index"
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index`
       );
 
       const data = await response.json();
@@ -66,13 +70,43 @@ export default function HomeScreen() {
     }
   }
 
-  useEffect(() => {
-    fetchUV();
-  }, []);
+ async function getLocation() {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      setError("Location permission denied");
+      return;
+    }
+
+    let currentLocation = await Location.getLastKnownPositionAsync();
+
+    if (!currentLocation) {
+      currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+    }
+
+    const { latitude, longitude } = currentLocation.coords;
+
+    setLocationName(
+      `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+    );
+
+    await fetchUV(latitude, longitude);
+
+  } catch (err) {
+    console.log(err);
+    setError("Unable to get location");
+  }
+}
+useEffect(() => {
+  getLocation();
+}, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header />
+      <Header location={locationName} />
 
       <UVCard
         uvIndex={uvIndex}

@@ -1,13 +1,19 @@
 import { StyleSheet, Text } from "react-native";
 
-export default function Header() {
+type HeaderProps = {
+  location: string;
+};
+
+export default function Header({ location }: HeaderProps) {
   return (
     <>
       <Text style={styles.logo}>☀️</Text>
 
       <Text style={styles.title}>SunSafe AU</Text>
 
-      <Text style={styles.location}>Perth, WA</Text>
+      <Text style={styles.location}>
+        {location}
+      </Text>
     </>
   );
 }
