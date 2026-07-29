@@ -5,6 +5,7 @@ type UVCardProps = {
   loading: boolean;
   error: string;
   level: string;
+  color: string; 
   onIncrease: () => void;
   onDecrease: () => void;
 };
@@ -14,6 +15,7 @@ export default function UVCard({
   loading,
   error,
   level,
+  color,
   onIncrease,
   onDecrease,
 }: UVCardProps) {
@@ -22,9 +24,9 @@ export default function UVCard({
       <Text style={styles.label}>UV Index</Text>
 
       {loading ? (
-        <Text style={styles.uv}>...</Text>
+        <Text style={[styles.uv, { color: color }]}>...</Text>
       ) : (
-        <Text style={styles.uv}>{uvIndex}</Text>
+        <Text style={[styles.uv, { color: color }]}>{uvIndex}</Text>
       )}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}

@@ -45,6 +45,18 @@ function getAdvice(uv: number): string[] {
   ];
 }
 
+function getUvColor(uv: number): string {
+  if (uv <= 2) return "#4CAF50";   // Green
+
+  if (uv <= 5) return "#FBC02D";   // Yellow
+
+  if (uv <= 7) return "#FB8C00";   // Orange
+
+  if (uv <= 10) return "#E53935";  // Red
+
+  return "#8E24AA";                // Purple
+}
+
 export default function HomeScreen() {
   const [uvIndex, setUvIndex] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -88,11 +100,19 @@ export default function HomeScreen() {
     }
 
     const { latitude, longitude } = currentLocation.coords;
+    const address = await Location.reverseGeocodeAsync({
+      latitude,
+      longitude,
+    });
+    console.log(address);
+
+    if (address.length > 0) {
+    const place = address[0];
 
     setLocationName(
-      `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`
+      `${place.city ?? "Unknown"}, ${place.region ?? ""}`
     );
-
+  }
     await fetchUV(latitude, longitude);
 
   } catch (err) {
@@ -113,6 +133,7 @@ useEffect(() => {
         loading={loading}
         error={error}
         level={getUvLevel(uvIndex)}
+        color={getUvColor(uvIndex)}
         onIncrease={() => setUvIndex(Math.min(15, uvIndex + 1))}
         onDecrease={() => setUvIndex(Math.max(0, uvIndex - 1))}
       />
