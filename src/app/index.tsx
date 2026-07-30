@@ -61,8 +61,8 @@ export default function HomeScreen() {
   const [uvIndex, setUvIndex] = useState(8);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [locationName, setLocationName] = useState("Getting location...");
+  const [lastUpdated, setLastUpdated] = useState("");
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
@@ -75,6 +75,13 @@ export default function HomeScreen() {
       const data = await response.json();
 
       setUvIndex(Math.round(data.current.uv_index));
+
+      const time = new Date().toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    setLastUpdated(time);
+
     } catch {
       setError("Unable to fetch UV data");
     } finally {
@@ -126,9 +133,11 @@ useEffect(() => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header location={locationName} />
+      <Header location={locationName} 
+       lastUpdated={lastUpdated}
+       />
 
-      <UVCard
+        <UVCard
         uvIndex={uvIndex}
         loading={loading}
         error={error}
