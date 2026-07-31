@@ -1,5 +1,9 @@
 import {useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
+import {
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 
@@ -63,6 +67,7 @@ export default function HomeScreen() {
   const [error, setError] = useState("");
   const [locationName, setLocationName] = useState("Getting location...");
   const [lastUpdated, setLastUpdated] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
@@ -127,12 +132,29 @@ export default function HomeScreen() {
     setError("Unable to get location");
   }
 }
+
+async function onRefresh() {
+  setRefreshing(true);
+
+  await getLocation();
+
+  setRefreshing(false);
+}
 useEffect(() => {
   getLocation();
 }, []);
 
   return (
     <SafeAreaView style={styles.container}>
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+      >
       <Header location={locationName} 
        lastUpdated={lastUpdated}
        />
@@ -148,6 +170,7 @@ useEffect(() => {
       />
 
       <AdviceCard advice={getAdvice(uvIndex)} />
+        </ScrollView>
     </SafeAreaView>
   );
 }
