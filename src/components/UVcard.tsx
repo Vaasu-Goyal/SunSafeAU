@@ -1,5 +1,6 @@
-import { Button, StyleSheet, Text, View } from "react-native";
-
+import { Button, StyleSheet, Text, View,Pressable } from "react-native";
+import { Feather ,Ionicons} from "@expo/vector-icons"; 
+  
 type UVCardProps = {
   uvIndex: number;
   loading: boolean;
@@ -20,7 +21,10 @@ export default function UVCard({
 }: UVCardProps) {
   return (
     <View style={styles.card}>
-        <Text style={styles.label}>UV Index</Text>
+        <View style={styles.labelRow}>
+  <Ionicons name="sunny" size={20} color="#64748B" />
+  <Text style={styles.label}>UV Index</Text>
+</View>
 
   {loading ? (
     <Text style={[styles.uv, { color }]}>Loading...</Text>
@@ -35,15 +39,22 @@ export default function UVCard({
   {error ? <Text style={styles.error}>{error}</Text> : null}
 
   <View style={styles.buttonContainer}>
-    <Button
-      title={loading ? "Refreshing..." : "Refresh"}
-      onPress={onRefresh}
-      disabled={loading}
-    />
-  </View>
-
-     
-    </View>
+  <Pressable
+    style={({ pressed }) => [
+      styles.refreshButton,
+      pressed && styles.refreshButtonPressed,
+      loading && styles.refreshButtonDisabled,
+    ]}
+    onPress={onRefresh}
+    disabled={loading}
+  >
+    <Feather name="refresh-cw" size={18} color="#fff" />
+    <Text style={styles.refreshText}>
+      {loading ? "Refreshing..." : "Refresh"}
+    </Text>
+  </Pressable>
+  </View>  
+</View>
   );
 }
 
@@ -79,10 +90,37 @@ const styles = StyleSheet.create({
     color: "red",
     marginVertical: 10,
   },
-
   buttonContainer: {
   marginTop: 20,
   width: "60%",
   alignSelf: "center",
-}
+  },  
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3B82F6",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  refreshButtonPressed: {
+    opacity: 0.8,
+  },
+
+  refreshButtonDisabled: {
+    backgroundColor: "#93C5FD",
+  },
+
+  refreshText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

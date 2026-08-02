@@ -171,8 +171,8 @@ useEffect(() => {
         error={error}
         level={getUvLevel(uvIndex)}
         color={getUvColor(uvIndex)}
-        onIncrease={() => setUvIndex(Math.min(15, uvIndex + 1))}
-        onDecrease={() => setUvIndex(Math.max(0, uvIndex - 1))}
+        onRefresh={onRefresh}
+    
       />
 
       <AdviceCard advice={getAdvice(uvIndex)} />
