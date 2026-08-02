@@ -142,7 +142,13 @@ async function onRefresh() {
 }
 useEffect(() => {
   getLocation();
+    const interval = setInterval(() => {
+    getLocation();
+  }, 15 * 60 * 1000);
+
+  return () => clearInterval(interval);
 }, []);
+
 
   return (
     <SafeAreaView style={styles.container}>

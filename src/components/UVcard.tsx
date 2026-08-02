@@ -6,8 +6,7 @@ type UVCardProps = {
   error: string;
   level: string;
   color: string; 
-  onIncrease: () => void;
-  onDecrease: () => void;
+  onRefresh: () => void;
 };
 
 export default function UVCard({
@@ -16,27 +15,34 @@ export default function UVCard({
   error,
   level,
   color,
-  onIncrease,
-  onDecrease,
+  onRefresh,
+
 }: UVCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>UV Index</Text>
+        <Text style={styles.label}>UV Index</Text>
 
-      {loading ? (
-        <Text style={[styles.uv, { color: color }]}>...</Text>
-      ) : (
-        <Text style={[styles.uv, { color: color }]}>{uvIndex}</Text>
-      )}
+  {loading ? (
+    <Text style={[styles.uv, { color }]}>Loading...</Text>
+  ) : (
+    <Text style={[styles.uv, { color }]}>{uvIndex}</Text>
+  )}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+  <Text style={[styles.level, { color }]}>
+    {level}
+  </Text>
 
-      <View style={styles.buttonContainer}>
-        <Button title="-" onPress={onDecrease} />
-        <Button title="+" onPress={onIncrease} />
-      </View>
+  {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Text style={styles.level}>{level}</Text>
+  <View style={styles.buttonContainer}>
+    <Button
+      title={loading ? "Refreshing..." : "Refresh"}
+      onPress={onRefresh}
+      disabled={loading}
+    />
+  </View>
+
+     
     </View>
   );
 }
@@ -75,9 +81,8 @@ const styles = StyleSheet.create({
   },
 
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "60%",
-    marginVertical: 20,
-  },
+  marginTop: 20,
+  width: "60%",
+  alignSelf: "center",
+}
 });
