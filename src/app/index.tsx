@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import UVCard from "@/components/UVcard";
 import AdviceCard from "@/components/Advicecard";
 import { Ionicons } from "@expo/vector-icons";
+import HourlyForecast from "@/components/HourlyForecast";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -104,16 +105,21 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [temperature, setTemperature] = useState(0);
   const [weatherCode, setWeatherCode] = useState(0);
+  const [hourlyForecast, setHourlyForecast] = useState<
+    { time: string; uv: number; temp: number; weatherCode: number }[]
+  >([]);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
+      
       setLoading(true);
 
       const response = await fetch(
-  `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code`
-);
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&forecast_days=2&timezone=auto`
+      );
       
       const data = await response.json();
+      console.log("Full API response:", JSON.stringify(data.hourly, null, 2));
 
       setUvIndex(Math.round(data.current.uv_index));
       setTemperature(Math.round(data.current.temperature_2m));
@@ -125,12 +131,34 @@ export default function HomeScreen() {
     });
     setLastUpdated(time);
 
-    } catch {
-      setError("Unable to fetch UV data");
-    } finally {
-      setLoading(false);
-    }
+    const hourlyTimes: string[] = data.hourly.time;
+    const hourlyUv: number[] = data.hourly.uv_index;
+    const hourlyTemp: number[] = data.hourly.temperature_2m;
+    const hourlyWeather: number[] = data.hourly.weather_code;
+  
+
+     const currentTime: string = data.current.time;
+
+    const upcoming = hourlyTimes
+      .map((t, i) => ({
+        time: t,
+        uv: Math.round(hourlyUv[i]),
+        temp: Math.round(hourlyTemp[i]),
+        weatherCode: hourlyWeather[i],
+      }))
+      .filter((entry) => entry.time >= currentTime)
+      .slice(0, 8);
+
+    setHourlyForecast(upcoming);
+
+
+
+  } catch {
+    setError("Unable to fetch UV data");
+  } finally {
+    setLoading(false);
   }
+}
 
  async function getLocation() {
   try {
@@ -169,7 +197,10 @@ export default function HomeScreen() {
     console.log(err);
     setError("Unable to get location");
   }
+
+  
 }
+
 
 async function onRefresh() {
   setRefreshing(true);
@@ -213,8 +244,14 @@ useEffect(() => {
         temperature={temperature}
         weather={getWeatherCondition(weatherCode)}
         weatherIcon={getWeatherIcon(weatherCode)}
+
     
       />
+      <HourlyForecast
+      data={hourlyForecast}
+      getWeatherIcon={getWeatherIcon}
+      getUvColor={getUvColor}
+    />
 
       <AdviceCard advice={getAdvice(uvIndex)} />
         </ScrollView>
