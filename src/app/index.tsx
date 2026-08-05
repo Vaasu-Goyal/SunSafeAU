@@ -10,6 +10,7 @@ import * as Location from "expo-location";
 import Header from "@/components/Header";
 import UVCard from "@/components/UVcard";
 import AdviceCard from "@/components/Advicecard";
+import { Ionicons } from "@expo/vector-icons";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -61,6 +62,39 @@ function getUvColor(uv: number): string {
   return "#8E24AA";                // Purple
 }
 
+function getWeatherCondition(code: number): string {
+  if (code === 0) return "Sunny";
+
+  if (code === 1) return "Mostly Clear";
+
+  if (code === 2) return "Partly Cloudy";
+
+  if (code === 3) return "Cloudy";
+
+  if (code >= 51 && code <= 67) return "Rain";
+
+  if (code >= 71 && code <= 77) return "Snow";
+
+  return "Unknown";
+}
+
+function getWeatherIcon(code: number): keyof typeof Ionicons.glyphMap {
+  if (code === 0) return "sunny";
+
+  if (code === 1) return "partly-sunny";
+
+  if (code === 2) return "partly-sunny";
+
+  if (code === 3) return "cloud";
+
+  if (code >= 51 && code <= 67) return "rainy";
+
+  if (code >= 71 && code <= 77) return "snow";
+
+  return "help-circle";
+}
+
+
 export default function HomeScreen() {
   const [uvIndex, setUvIndex] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -68,18 +102,22 @@ export default function HomeScreen() {
   const [locationName, setLocationName] = useState("Getting location...");
   const [lastUpdated, setLastUpdated] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [temperature, setTemperature] = useState(0);
+  const [weatherCode, setWeatherCode] = useState(0);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
       setLoading(true);
 
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index`
-      );
-
+  `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code`
+);
+      
       const data = await response.json();
 
       setUvIndex(Math.round(data.current.uv_index));
+      setTemperature(Math.round(data.current.temperature_2m));
+      setWeatherCode(data.current.weather_code);
 
       const time = new Date().toLocaleTimeString([], {
       hour: "numeric",
@@ -172,6 +210,9 @@ useEffect(() => {
         level={getUvLevel(uvIndex)}
         color={getUvColor(uvIndex)}
         onRefresh={onRefresh}
+        temperature={temperature}
+        weather={getWeatherCondition(weatherCode)}
+        weatherIcon={getWeatherIcon(weatherCode)}
     
       />
 

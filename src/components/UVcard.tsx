@@ -8,6 +8,9 @@ type UVCardProps = {
   level: string;
   color: string; 
   onRefresh: () => void;
+  temperature: number;
+  weather: string;
+  weatherIcon: keyof typeof Ionicons.glyphMap;
 };
 
 export default function UVCard({
@@ -17,6 +20,9 @@ export default function UVCard({
   level,
   color,
   onRefresh,
+  temperature,
+  weather,
+  weatherIcon
 
 }: UVCardProps) {
   return (
@@ -32,11 +38,30 @@ export default function UVCard({
     <Text style={[styles.uv, { color }]}>{uvIndex}</Text>
   )}
 
-  <Text style={[styles.level, { color }]}>
-    {level}
-  </Text>
 
   {error ? <Text style={styles.error}>{error}</Text> : null}
+
+  <Text style={[styles.level, { color }]}>
+  {level}
+</Text>
+
+<View style={styles.tempRow}>
+  <Feather name="thermometer" size={16} color="#64748B" />
+  <Text style={styles.tempText}>{temperature}°C</Text>
+</View>
+
+{error ? <Text style={styles.error}>{error}</Text> : null}
+
+<View style={styles.weatherRow}>
+  <Ionicons
+    name={weatherIcon}
+    size={20}
+    color="#64748B"
+  />
+  <Text style={styles.weather}>
+    {weather}
+  </Text>
+</View>
 
   <View style={styles.buttonContainer}>
   <Pressable
@@ -123,4 +148,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  tempRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  marginTop: 8,
+},
+
+tempText: {
+  fontSize: 16,
+  color: "#64748B",
+},
+weatherRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 10,
+  gap: 6,
+},
+
+weather: {
+  fontSize: 18,
+  color: "#475569",
+},
 });
