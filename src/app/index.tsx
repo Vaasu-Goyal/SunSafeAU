@@ -3,6 +3,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
+  Pressable,
+  Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
@@ -12,6 +14,8 @@ import UVCard from "@/components/UVcard";
 import AdviceCard from "@/components/Advicecard";
 import { Ionicons } from "@expo/vector-icons";
 import HourlyForecast from "@/components/HourlyForecast";
+import UVChart from "@/components/uvchart";
+import { requestNotificationPermission, sendTestNotification } from "@/utils/notification";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -93,6 +97,15 @@ function getWeatherIcon(code: number): keyof typeof Ionicons.glyphMap {
   if (code >= 71 && code <= 77) return "snow";
 
   return "help-circle";
+}
+
+async function handleTestNotification() {
+  const granted = await requestNotificationPermission();
+  if (granted) {
+    await sendTestNotification();
+  } else {
+    console.log("Notification permission denied");
+  }
 }
 
 
@@ -253,11 +266,30 @@ useEffect(() => {
       getUvColor={getUvColor}
     />
 
+    <UVChart data={hourlyForecast} />
+
+
       <AdviceCard advice={getAdvice(uvIndex)} />
+
+        <Pressable
+        onPress={handleTestNotification}
+        style={{
+          padding: 16,
+          backgroundColor: "#3B82F6",
+          borderRadius: 12,
+          margin: 20,
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: "white", fontWeight: "600" }}>Test Notification</Text>
+        </Pressable>
         </ScrollView>
     </SafeAreaView>
   );
+
+  
 }
+
 
 const styles = StyleSheet.create({
   container: {

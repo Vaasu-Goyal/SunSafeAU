@@ -1,6 +1,6 @@
 import { Button, StyleSheet, Text, View,Pressable } from "react-native";
 import { Feather ,Ionicons} from "@expo/vector-icons"; 
-import HourlyForecast from "@/components/HourlyForecast";
+
   
 type UVCardProps = {
   uvIndex: number;
