@@ -55,9 +55,10 @@ export async function scheduleSunscreenReminder() {
       body: "It's been 2 hours — time to reapply SPF!",
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 2 * 60 * 60,
       repeats: true,
-    } as Notifications.TimeIntervalTriggerInput,
+    },
   });
 }
 
@@ -71,11 +72,14 @@ export async function scheduleWaterReminder() {
       body: "Take a water break!",
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 60 * 60,
       repeats: true,
-    } as Notifications.TimeIntervalTriggerInput,
+    },
   });
 }
+
+
 
 export async function cancelAllReminders() {
   await Notifications.cancelScheduledNotificationAsync("sunscreen-reminder").catch(() => {});

@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import HourlyForecast from "@/components/HourlyForecast";
 import UVChart from "@/components/uvchart";
 import { requestNotificationPermission, sendTestNotification } from "@/utils/notification";
+import { getIsPremium, setPremium } from "@/utils/premium";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -121,6 +122,7 @@ export default function HomeScreen() {
   const [hourlyForecast, setHourlyForecast] = useState<
     { time: string; uv: number; temp: number; weatherCode: number }[]
   >([]);
+  const [isPremium, setIsPremium] = useState(false);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
@@ -231,6 +233,10 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, []);
 
+useEffect(() => {
+  getIsPremium().then(setIsPremium);
+}, []);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -271,18 +277,56 @@ useEffect(() => {
 
       <AdviceCard advice={getAdvice(uvIndex)} />
 
-        <Pressable
-        onPress={handleTestNotification}
-        style={{
-          padding: 16,
-          backgroundColor: "#3B82F6",
-          borderRadius: 12,
-          margin: 20,
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ color: "white", fontWeight: "600" }}>Test Notification</Text>
-        </Pressable>
+        {__DEV__ && (
+  <>
+    <Pressable
+      onPress={handleTestNotification}
+      style={{
+        padding: 16,
+        backgroundColor: "#3B82F6",
+        borderRadius: 12,
+        margin: 20,
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color: "white", fontWeight: "600" }}>Test Notification</Text>
+    </Pressable>
+
+    <Pressable
+      onPress={async () => {
+        await setPremium(true);
+        setIsPremium(true);
+      }}
+      style={{
+        padding: 16,
+        backgroundColor: "#10B981",
+        borderRadius: 12,
+        margin: 20,
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color: "white", fontWeight: "600" }}>
+        {isPremium ? "✓ Premium Active" : "Simulate Purchase ($10 AUD)"}
+      </Text>
+    </Pressable>
+
+    <Pressable
+      onPress={async () => {
+        await setPremium(false);
+        setIsPremium(false);
+      }}
+      style={{
+        padding: 12,
+        backgroundColor: "#EF4444",
+        borderRadius: 12,
+        margin: 20,
+        alignItems: "center",
+      }}
+    >
+      <Text style={{ color: "white", fontWeight: "600" }}>Reset Premium (dev only)</Text>
+    </Pressable>
+  </>
+)}
         </ScrollView>
     </SafeAreaView>
   );

@@ -44,11 +44,13 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginBottom: 30,
   },
+
   updated: {
   fontSize: 16,
   textAlign: "center",
   color: "#64748B",
   marginBottom: 20,
 },
+
 });
 
