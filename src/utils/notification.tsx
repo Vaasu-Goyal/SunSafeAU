@@ -12,6 +12,8 @@ Notifications.setNotificationHandler({
 });
 
 export async function requestNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
 
   let finalStatus = existingStatus;
@@ -36,16 +38,20 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export async function sendTestNotification() {
+  if (Platform.OS === "web") return;
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "SunSafeAU Test",
       body: "If you see this, notifications are working! ☀️",
     },
-    trigger: null, // null = fire immediately
+    trigger: null,
   });
 }
 
 export async function scheduleSunscreenReminder() {
+  if (Platform.OS === "web") return;
+
   await Notifications.cancelScheduledNotificationAsync("sunscreen-reminder").catch(() => {});
 
   await Notifications.scheduleNotificationAsync({
@@ -63,6 +69,8 @@ export async function scheduleSunscreenReminder() {
 }
 
 export async function scheduleWaterReminder() {
+  if (Platform.OS === "web") return;
+
   await Notifications.cancelScheduledNotificationAsync("water-reminder").catch(() => {});
 
   await Notifications.scheduleNotificationAsync({
@@ -79,9 +87,9 @@ export async function scheduleWaterReminder() {
   });
 }
 
-
-
 export async function cancelAllReminders() {
+  if (Platform.OS === "web") return;
+
   await Notifications.cancelScheduledNotificationAsync("sunscreen-reminder").catch(() => {});
   await Notifications.cancelScheduledNotificationAsync("water-reminder").catch(() => {});
 }

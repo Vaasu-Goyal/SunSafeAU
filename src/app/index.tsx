@@ -17,6 +17,7 @@ import HourlyForecast from "@/components/HourlyForecast";
 import UVChart from "@/components/uvchart";
 import { requestNotificationPermission, sendTestNotification } from "@/utils/notification";
 import { getIsPremium, setPremium } from "@/utils/premium";
+import { OpenMeteoResponse,HourlyForecastEntry } from "@/types/weather";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -119,10 +120,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [temperature, setTemperature] = useState(0);
   const [weatherCode, setWeatherCode] = useState(0);
-  const [hourlyForecast, setHourlyForecast] = useState<
-    { time: string; uv: number; temp: number; weatherCode: number }[]
-  >([]);
+  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>([]);
   const [isPremium, setIsPremium] = useState(false);
+  
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
@@ -133,7 +133,7 @@ export default function HomeScreen() {
       `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&forecast_days=2&timezone=auto`
       );
       
-      const data = await response.json();
+      const data: OpenMeteoResponse = await response.json();
       console.log("Full API response:", JSON.stringify(data.hourly, null, 2));
 
       setUvIndex(Math.round(data.current.uv_index));
@@ -146,10 +146,10 @@ export default function HomeScreen() {
     });
     setLastUpdated(time);
 
-    const hourlyTimes: string[] = data.hourly.time;
-    const hourlyUv: number[] = data.hourly.uv_index;
-    const hourlyTemp: number[] = data.hourly.temperature_2m;
-    const hourlyWeather: number[] = data.hourly.weather_code;
+    const hourlyTimes = data.hourly.time;
+    const hourlyUv = data.hourly.uv_index;
+    const hourlyTemp = data.hourly.temperature_2m;
+    const hourlyWeather = data.hourly.weather_code;
   
 
      const currentTime: string = data.current.time;

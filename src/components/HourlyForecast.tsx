@@ -1,15 +1,10 @@
 import { ScrollView, View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { HourlyForecastEntry } from "@/types/weather"; 
 
-type HourlyEntry = {
-  time: string;
-  uv: number;
-  temp: number;
-  weatherCode: number;
-};
 
 type HourlyForecastProps = {
-  data: HourlyEntry[];
+  data: HourlyForecastEntry[];
   getWeatherIcon: (code: number) => keyof typeof Ionicons.glyphMap;
   getUvColor: (uv: number) => string;
 };
