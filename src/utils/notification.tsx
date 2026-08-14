@@ -11,6 +11,9 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const SUNSCREEN_HOURS = [8, 10, 12, 14, 16]; // 8am, 10am, 12pm, 2pm, 4pm
+const WATER_HOURS = [9, 11, 13, 15, 17]; // 9am, 11am, 1pm, 3pm, 5pm
+
 export async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === "web") return false;
 
@@ -49,47 +52,67 @@ export async function sendTestNotification() {
   });
 }
 
-export async function scheduleSunscreenReminder() {
+export async function scheduleSunscreenReminders() {
   if (Platform.OS === "web") return;
 
-  await Notifications.cancelScheduledNotificationAsync("sunscreen-reminder").catch(() => {});
+  for (const hour of SUNSCREEN_HOURS) {
+    await Notifications.cancelScheduledNotificationAsync(
+      `sunscreen-${hour}`,
+    ).catch(() => {});
+  }
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: "sunscreen-reminder",
-    content: {
-      title: "Reapply Sunscreen ☀️",
-      body: "It's been 2 hours — time to reapply SPF!",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2 * 60 * 60,
-      repeats: true,
-    },
-  });
+  for (const hour of SUNSCREEN_HOURS) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: `sunscreen-${hour}`,
+      content: {
+        title: "Reapply Sunscreen ☀️",
+        body: "Time to reapply SPF — protect your skin!",
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute: 0,
+      },
+    });
+  }
 }
 
-export async function scheduleWaterReminder() {
+export async function scheduleWaterReminders() {
   if (Platform.OS === "web") return;
 
-  await Notifications.cancelScheduledNotificationAsync("water-reminder").catch(() => {});
+  for (const hour of WATER_HOURS) {
+    await Notifications.cancelScheduledNotificationAsync(`water-${hour}`).catch(
+      () => {},
+    );
+  }
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: "water-reminder",
-    content: {
-      title: "Stay Hydrated 💧",
-      body: "Take a water break!",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 60 * 60,
-      repeats: true,
-    },
-  });
+  for (const hour of WATER_HOURS) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: `water-${hour}`,
+      content: {
+        title: "Stay Hydrated 💧",
+        body: "Take a water break!",
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute: 0,
+      },
+    });
+  }
 }
 
 export async function cancelAllReminders() {
   if (Platform.OS === "web") return;
 
-  await Notifications.cancelScheduledNotificationAsync("sunscreen-reminder").catch(() => {});
-  await Notifications.cancelScheduledNotificationAsync("water-reminder").catch(() => {});
+  for (const hour of SUNSCREEN_HOURS) {
+    await Notifications.cancelScheduledNotificationAsync(
+      `sunscreen-${hour}`,
+    ).catch(() => {});
+  }
+  for (const hour of WATER_HOURS) {
+    await Notifications.cancelScheduledNotificationAsync(`water-${hour}`).catch(
+      () => {},
+    );
+  }
 }

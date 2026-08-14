@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { scheduleSunscreenReminder, scheduleWaterReminder, cancelAllReminders } from "@/utils/notification";
+import { scheduleSunscreenReminders, scheduleWaterReminders, cancelAllReminders } from "@/utils/notification";
 
 const PREMIUM_KEY = "isPremiumMember";
 
@@ -12,8 +12,8 @@ export async function setPremium(status: boolean) {
   await AsyncStorage.setItem(PREMIUM_KEY, status ? "true" : "false");
 
   if (status) {
-    await scheduleSunscreenReminder();
-    await scheduleWaterReminder();
+    await scheduleSunscreenReminders();
+    await scheduleWaterReminders();
   } else {
     await cancelAllReminders();
   }
