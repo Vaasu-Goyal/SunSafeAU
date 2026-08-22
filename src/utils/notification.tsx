@@ -3,7 +3,6 @@ import { Platform } from "react-native";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
@@ -70,7 +69,7 @@ export async function scheduleSunscreenReminders() {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
+        hour: hour,
         minute: 0,
       },
     });
@@ -95,7 +94,7 @@ export async function scheduleWaterReminders() {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
+        hour: hour,
         minute: 0,
       },
     });

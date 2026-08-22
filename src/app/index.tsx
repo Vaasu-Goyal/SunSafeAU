@@ -1,23 +1,30 @@
-import {useEffect, useState } from "react";
+import * as Location from "expo-location";
+import { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
   Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Location from "expo-location";
 
-import Header from "@/components/Header";
-import UVCard from "@/components/UVcard";
 import AdviceCard from "@/components/Advicecard";
-import { Ionicons } from "@expo/vector-icons";
+import Header from "@/components/Header";
 import HourlyForecast from "@/components/HourlyForecast";
+import UVCard from "@/components/UVcard";
 import UVChart from "@/components/uvchart";
-import { requestNotificationPermission, sendTestNotification } from "@/utils/notification";
+import { HourlyForecastEntry, OpenMeteoResponse } from "@/types/weather";
+import {
+  requestNotificationPermission,
+  sendTestNotification,
+} from "@/utils/notification";
 import { getIsPremium, setPremium } from "@/utils/premium";
-import { OpenMeteoResponse,HourlyForecastEntry } from "@/types/weather";
+import { Ionicons } from "@expo/vector-icons";
+
+import SkinTypeSelector from "@/components/SkinTypeSelector";
+import { SkinType } from "@/types/skin";
+import { getSkinType, setSkinType } from "@/utils/skin";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -29,25 +36,15 @@ function getUvLevel(uv: number) {
 
 function getAdvice(uv: number): string[] {
   if (uv <= 2) {
-    return [
-      "Enjoy the sunshine",
-      "Wear sunglasses",
-    ];
+    return ["Enjoy the sunshine", "Wear sunglasses"];
   }
 
   if (uv <= 5) {
-    return [
-      "Apply SPF 30+",
-      "Drink water",
-    ];
+    return ["Apply SPF 30+", "Drink water"];
   }
 
   if (uv <= 7) {
-    return [
-      "Wear a hat",
-      "Apply SPF 50+",
-      "Stay hydrated",
-    ];
+    return ["Wear a hat", "Apply SPF 50+", "Stay hydrated"];
   }
 
   return [
@@ -58,15 +55,15 @@ function getAdvice(uv: number): string[] {
 }
 
 function getUvColor(uv: number): string {
-  if (uv <= 2) return "#4CAF50";   // Green
+  if (uv <= 2) return "#4CAF50"; // Green
 
-  if (uv <= 5) return "#FBC02D";   // Yellow
+  if (uv <= 5) return "#FBC02D"; // Yellow
 
-  if (uv <= 7) return "#FB8C00";   // Orange
+  if (uv <= 7) return "#FB8C00"; // Orange
 
-  if (uv <= 10) return "#E53935";  // Red
+  if (uv <= 10) return "#E53935"; // Red
 
-  return "#8E24AA";                // Purple
+  return "#8E24AA"; // Purple
 }
 
 function getWeatherCondition(code: number): string {
@@ -110,7 +107,6 @@ async function handleTestNotification() {
   }
 }
 
-
 export default function HomeScreen() {
   const [uvIndex, setUvIndex] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -120,19 +116,20 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [temperature, setTemperature] = useState(0);
   const [weatherCode, setWeatherCode] = useState(0);
-  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>([]);
+  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>(
+    [],
+  );
   const [isPremium, setIsPremium] = useState(false);
-  
+  const [skinType, setSkinTypeState] = useState<SkinType | null>(null);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
-      
       setLoading(true);
 
       const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&forecast_days=2&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&forecast_days=2&timezone=auto`,
       );
-      
+
       const data: OpenMeteoResponse = await response.json();
       console.log("Full API response:", JSON.stringify(data.hourly, null, 2));
 
@@ -141,199 +138,197 @@ export default function HomeScreen() {
       setWeatherCode(data.current.weather_code);
 
       const time = new Date().toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    setLastUpdated(time);
-
-    const hourlyTimes = data.hourly.time;
-    const hourlyUv = data.hourly.uv_index;
-    const hourlyTemp = data.hourly.temperature_2m;
-    const hourlyWeather = data.hourly.weather_code;
-  
-
-     const currentTime: string = data.current.time;
-
-    const upcoming = hourlyTimes
-      .map((t, i) => ({
-        time: t,
-        uv: Math.round(hourlyUv[i]),
-        temp: Math.round(hourlyTemp[i]),
-        weatherCode: hourlyWeather[i],
-      }))
-      .filter((entry) => entry.time >= currentTime)
-      .slice(0, 8);
-
-    setHourlyForecast(upcoming);
-
-
-
-  } catch {
-    setError("Unable to fetch UV data");
-  } finally {
-    setLoading(false);
-  }
-}
-
- async function getLocation() {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-
-    if (status !== "granted") {
-      setError("Location permission denied");
-      return;
-    }
-
-    let currentLocation = await Location.getLastKnownPositionAsync();
-
-    if (!currentLocation) {
-      currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        hour: "numeric",
+        minute: "2-digit",
       });
+      setLastUpdated(time);
+
+      const hourlyTimes = data.hourly.time;
+      const hourlyUv = data.hourly.uv_index;
+      const hourlyTemp = data.hourly.temperature_2m;
+      const hourlyWeather = data.hourly.weather_code;
+
+      const currentTime: string = data.current.time;
+
+      const upcoming = hourlyTimes
+        .map((t, i) => ({
+          time: t,
+          uv: Math.round(hourlyUv[i]),
+          temp: Math.round(hourlyTemp[i]),
+          weatherCode: hourlyWeather[i],
+        }))
+        .filter((entry) => entry.time >= currentTime)
+        .slice(0, 8);
+
+      setHourlyForecast(upcoming);
+    } catch {
+      setError("Unable to fetch UV data");
+    } finally {
+      setLoading(false);
     }
-
-    const { latitude, longitude } = currentLocation.coords;
-    const address = await Location.reverseGeocodeAsync({
-      latitude,
-      longitude,
-    });
-    console.log(address);
-
-    if (address.length > 0) {
-    const place = address[0];
-
-    setLocationName(
-      `${place.city ?? "Unknown"}, ${place.region ?? ""}`
-    );
-  }
-    await fetchUV(latitude, longitude);
-
-  } catch (err) {
-    console.log(err);
-    setError("Unable to get location");
   }
 
-  
-}
+  async function getLocation() {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
 
+      if (status !== "granted") {
+        setError("Location permission denied");
+        return;
+      }
 
-async function onRefresh() {
-  setRefreshing(true);
+      let currentLocation = await Location.getLastKnownPositionAsync();
 
-  await getLocation();
+      if (!currentLocation) {
+        currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+      }
 
-  setRefreshing(false);
-}
-useEffect(() => {
-  getLocation();
-    const interval = setInterval(() => {
+      const { latitude, longitude } = currentLocation.coords;
+      const address = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      console.log(address);
+
+      if (address.length > 0) {
+        const place = address[0];
+
+        setLocationName(`${place.city ?? "Unknown"}, ${place.region ?? ""}`);
+      }
+      await fetchUV(latitude, longitude);
+    } catch (err) {
+      console.log(err);
+      setError("Unable to get location");
+    }
+  }
+
+  async function onRefresh() {
+    setRefreshing(true);
+
+    await getLocation();
+
+    setRefreshing(false);
+  }
+
+  async function handleSelectSkinType(type: SkinType) {
+    await setSkinType(type); // now correctly calls utils/skin.ts
+    setSkinTypeState(type);
+  }
+  useEffect(() => {
     getLocation();
-  }, 15 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        getLocation();
+      },
+      15 * 60 * 1000,
+    );
 
-  return () => clearInterval(interval);
-}, []);
+    return () => clearInterval(interval);
+  }, []);
 
-useEffect(() => {
-  getIsPremium().then(setIsPremium);
-}, []);
+  useEffect(() => {
+    getIsPremium().then(setIsPremium);
+  }, []);
 
+  useEffect(() => {
+    getSkinType().then(setSkinTypeState);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-    <ScrollView
-      contentContainerStyle={{ flexGrow: 1 }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      }
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
-      <Header location={locationName} 
-       lastUpdated={lastUpdated}
-       />
+        <Header location={locationName} lastUpdated={lastUpdated} />
 
         <UVCard
-        uvIndex={uvIndex}
-        loading={loading}
-        error={error}
-        level={getUvLevel(uvIndex)}
-        color={getUvColor(uvIndex)}
-        onRefresh={onRefresh}
-        temperature={temperature}
-        weather={getWeatherCondition(weatherCode)}
-        weatherIcon={getWeatherIcon(weatherCode)}
+          uvIndex={uvIndex}
+          loading={loading}
+          error={error}
+          level={getUvLevel(uvIndex)}
+          color={getUvColor(uvIndex)}
+          onRefresh={onRefresh}
+          temperature={temperature}
+          weather={getWeatherCondition(weatherCode)}
+          weatherIcon={getWeatherIcon(weatherCode)}
+          skinType={skinType}
+          isPremium={isPremium}
+        />
+        <HourlyForecast
+          data={hourlyForecast}
+          getWeatherIcon={getWeatherIcon}
+          getUvColor={getUvColor}
+        />
 
-    
-      />
-      <HourlyForecast
-      data={hourlyForecast}
-      getWeatherIcon={getWeatherIcon}
-      getUvColor={getUvColor}
-    />
+        <SkinTypeSelector selected={skinType} onSelect={handleSelectSkinType} />
 
-    <UVChart data={hourlyForecast} />
+        <UVChart data={hourlyForecast} />
 
-
-      <AdviceCard advice={getAdvice(uvIndex)} />
+        <AdviceCard advice={getAdvice(uvIndex)} />
 
         {__DEV__ && (
-  <>
-    <Pressable
-      onPress={handleTestNotification}
-      style={{
-        padding: 16,
-        backgroundColor: "#3B82F6",
-        borderRadius: 12,
-        margin: 20,
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ color: "white", fontWeight: "600" }}>Test Notification</Text>
-    </Pressable>
+          <>
+            <Pressable
+              onPress={handleTestNotification}
+              style={{
+                padding: 16,
+                backgroundColor: "#3B82F6",
+                borderRadius: 12,
+                margin: 20,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>
+                Test Notification
+              </Text>
+            </Pressable>
 
-    <Pressable
-      onPress={async () => {
-        await setPremium(true);
-        setIsPremium(true);
-      }}
-      style={{
-        padding: 16,
-        backgroundColor: "#10B981",
-        borderRadius: 12,
-        margin: 20,
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ color: "white", fontWeight: "600" }}>
-        {isPremium ? "✓ Premium Active" : "Simulate Purchase ($10 AUD)"}
-      </Text>
-    </Pressable>
+            <Pressable
+              onPress={async () => {
+                await setPremium(true);
+                setIsPremium(true);
+              }}
+              style={{
+                padding: 16,
+                backgroundColor: "#10B981",
+                borderRadius: 12,
+                margin: 20,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>
+                {isPremium ? "✓ Premium Active" : "Simulate Purchase ($10 AUD)"}
+              </Text>
+            </Pressable>
 
-    <Pressable
-      onPress={async () => {
-        await setPremium(false);
-        setIsPremium(false);
-      }}
-      style={{
-        padding: 12,
-        backgroundColor: "#EF4444",
-        borderRadius: 12,
-        margin: 20,
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ color: "white", fontWeight: "600" }}>Reset Premium (dev only)</Text>
-    </Pressable>
-  </>
-)}
-        </ScrollView>
+            <Pressable
+              onPress={async () => {
+                await setPremium(false);
+                setIsPremium(false);
+              }}
+              style={{
+                padding: 12,
+                backgroundColor: "#EF4444",
+                borderRadius: 12,
+                margin: 20,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "600" }}>
+                Reset Premium (dev only)
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
-
-  
 }
-
 
 const styles = StyleSheet.create({
   container: {
