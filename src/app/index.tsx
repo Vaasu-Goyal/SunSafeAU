@@ -1,30 +1,21 @@
 import * as Location from "expo-location";
-import { useEffect, useState } from "react";
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-} from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AdviceCard from "@/components/Advicecard";
 import Header from "@/components/Header";
 import HourlyForecast from "@/components/HourlyForecast";
+import SkinTypeSummary from "@/components/SkinTypeSummary";
 import UVCard from "@/components/UVcard";
 import UVChart from "@/components/uvchart";
 import { HourlyForecastEntry, OpenMeteoResponse } from "@/types/weather";
-import {
-  requestNotificationPermission,
-  sendTestNotification,
-} from "@/utils/notification";
-import { getIsPremium, setPremium } from "@/utils/premium";
+import { getIsPremium } from "@/utils/premium";
 import { Ionicons } from "@expo/vector-icons";
 
-import SkinTypeSelector from "@/components/SkinTypeSelector";
 import { SkinType } from "@/types/skin";
-import { getSkinType, setSkinType } from "@/utils/skin";
+import { getSkinType } from "@/utils/skin";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -56,55 +47,30 @@ function getAdvice(uv: number): string[] {
 
 function getUvColor(uv: number): string {
   if (uv <= 2) return "#4CAF50"; // Green
-
   if (uv <= 5) return "#FBC02D"; // Yellow
-
   if (uv <= 7) return "#FB8C00"; // Orange
-
   if (uv <= 10) return "#E53935"; // Red
-
   return "#8E24AA"; // Purple
 }
 
 function getWeatherCondition(code: number): string {
   if (code === 0) return "Sunny";
-
   if (code === 1) return "Mostly Clear";
-
   if (code === 2) return "Partly Cloudy";
-
   if (code === 3) return "Cloudy";
-
   if (code >= 51 && code <= 67) return "Rain";
-
   if (code >= 71 && code <= 77) return "Snow";
-
   return "Unknown";
 }
 
 function getWeatherIcon(code: number): keyof typeof Ionicons.glyphMap {
   if (code === 0) return "sunny";
-
   if (code === 1) return "partly-sunny";
-
   if (code === 2) return "partly-sunny";
-
   if (code === 3) return "cloud";
-
   if (code >= 51 && code <= 67) return "rainy";
-
   if (code >= 71 && code <= 77) return "snow";
-
   return "help-circle";
-}
-
-async function handleTestNotification() {
-  const granted = await requestNotificationPermission();
-  if (granted) {
-    await sendTestNotification();
-  } else {
-    console.log("Notification permission denied");
-  }
 }
 
 export default function HomeScreen() {
@@ -131,7 +97,6 @@ export default function HomeScreen() {
       );
 
       const data: OpenMeteoResponse = await response.json();
-      console.log("Full API response:", JSON.stringify(data.hourly, null, 2));
 
       setUvIndex(Math.round(data.current.uv_index));
       setTemperature(Math.round(data.current.temperature_2m));
@@ -190,11 +155,9 @@ export default function HomeScreen() {
         latitude,
         longitude,
       });
-      console.log(address);
 
       if (address.length > 0) {
         const place = address[0];
-
         setLocationName(`${place.city ?? "Unknown"}, ${place.region ?? ""}`);
       }
       await fetchUV(latitude, longitude);
@@ -206,16 +169,10 @@ export default function HomeScreen() {
 
   async function onRefresh() {
     setRefreshing(true);
-
     await getLocation();
-
     setRefreshing(false);
   }
 
-  async function handleSelectSkinType(type: SkinType) {
-    await setSkinType(type); // now correctly calls utils/skin.ts
-    setSkinTypeState(type);
-  }
   useEffect(() => {
     getLocation();
     const interval = setInterval(
@@ -228,13 +185,14 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    getIsPremium().then(setIsPremium);
-  }, []);
-
-  useEffect(() => {
-    getSkinType().then(setSkinTypeState);
-  }, []);
+  // Re-read premium status and skin type every time Home regains focus
+  // (e.g. after the user changes them in Settings)
+  useFocusEffect(
+    useCallback(() => {
+      getIsPremium().then(setIsPremium);
+      getSkinType().then(setSkinTypeState);
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -259,72 +217,18 @@ export default function HomeScreen() {
           skinType={skinType}
           isPremium={isPremium}
         />
+
+        <SkinTypeSummary skinType={skinType} />
+
         <HourlyForecast
           data={hourlyForecast}
           getWeatherIcon={getWeatherIcon}
           getUvColor={getUvColor}
         />
 
-        <SkinTypeSelector selected={skinType} onSelect={handleSelectSkinType} />
-
         <UVChart data={hourlyForecast} />
 
         <AdviceCard advice={getAdvice(uvIndex)} />
-
-        {__DEV__ && (
-          <>
-            <Pressable
-              onPress={handleTestNotification}
-              style={{
-                padding: 16,
-                backgroundColor: "#3B82F6",
-                borderRadius: 12,
-                margin: 20,
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "white", fontWeight: "600" }}>
-                Test Notification
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={async () => {
-                await setPremium(true);
-                setIsPremium(true);
-              }}
-              style={{
-                padding: 16,
-                backgroundColor: "#10B981",
-                borderRadius: 12,
-                margin: 20,
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "white", fontWeight: "600" }}>
-                {isPremium ? "✓ Premium Active" : "Simulate Purchase ($10 AUD)"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={async () => {
-                await setPremium(false);
-                setIsPremium(false);
-              }}
-              style={{
-                padding: 12,
-                backgroundColor: "#EF4444",
-                borderRadius: 12,
-                margin: 20,
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ color: "white", fontWeight: "600" }}>
-                Reset Premium (dev only)
-              </Text>
-            </Pressable>
-          </>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

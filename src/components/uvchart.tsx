@@ -1,14 +1,9 @@
 import { View, Text, StyleSheet } from "react-native";
+import { HourlyForecastEntry } from "@/types/weather"; 
 
-type UVChartEntry = {
-  time: string;
-  uv: number;
-  temp: number;
-  weatherCode: number;
-};
 
 type UVChartProps = {
-  data: UVChartEntry[];
+  data: HourlyForecastEntry[];
 };
 
 function formatHour(isoTime: string): string {

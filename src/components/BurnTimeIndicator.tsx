@@ -1,38 +1,39 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  Easing,
 } from "react-native-reanimated";
+import { useEffect } from "react";
 
 import { formatBurnTime } from "@/utils/skin";
+import { useBurnExposure } from "@/hooks/useBurnExposure";
+import { SkinType } from "@/types/skin";
 
 type BurnTimeIndicatorProps = {
-  minutes: number | null;
+  skinType: SkinType | null;
+  uvIndex: number;
 };
 
-const MAX_REFERENCE_MINUTES = 6 * 60; // visual scale cap for the bar
-
-function getUrgency(minutes: number | null) {
-  if (minutes === null)
-    return {
-      level: "none" as const,
-      color: "#64748B",
-      label: "No burn risk right now",
-    };
-  if (minutes < 60)
+function getUrgency(remainingFraction: number, minutesToBurn: number | null) {
+  if (minutesToBurn === null)
+    return { level: "none" as const, color: "#64748B", label: "No burn risk right now" };
+  if (remainingFraction <= 0)
+    return { level: "urgent" as const, color: "#EF4444", label: "Reapply now" };
+  if (remainingFraction < 0.33)
     return { level: "urgent" as const, color: "#EF4444", label: "Urgent" };
-  if (minutes < 180)
+  if (remainingFraction < 0.66)
     return { level: "moderate" as const, color: "#FB8C00", label: "Moderate" };
   return { level: "safe" as const, color: "#22C55E", label: "Low urgency" };
 }
 
-export default function BurnTimeIndicator({ minutes }: BurnTimeIndicatorProps) {
-  const urgency = getUrgency(minutes);
+export default function BurnTimeIndicator({ skinType, uvIndex }: BurnTimeIndicatorProps) {
+  const { exposureFraction, minutesToBurn } = useBurnExposure(skinType, uvIndex);
+  const remainingFraction = Math.max(0, 1 - exposureFraction);
+  const urgency = getUrgency(remainingFraction, minutesToBurn);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
@@ -51,34 +52,29 @@ export default function BurnTimeIndicator({ minutes }: BurnTimeIndicatorProps) {
     transform: [{ scale: pulse.value }],
   }));
 
-  const fillFraction =
-    minutes === null ? 0 : Math.min(minutes / MAX_REFERENCE_MINUTES, 1);
-
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Animated.View style={animatedIconStyle}>
           <Ionicons name="hourglass" size={20} color={urgency.color} />
         </Animated.View>
-        <Text style={[styles.badgeLabel, { color: urgency.color }]}>
-          {urgency.label}
-        </Text>
+        <Text style={[styles.badgeLabel, { color: urgency.color }]}>{urgency.label}</Text>
       </View>
 
-      <Text style={styles.timeText}>{formatBurnTime(minutes)}</Text>
+      <Text style={styles.timeText}>{formatBurnTime(minutesToBurn)}</Text>
 
       <View style={styles.barTrack}>
         <View
           style={[
             styles.barFill,
-            { width: `${fillFraction * 100}%`, backgroundColor: urgency.color },
+            { width: `${remainingFraction * 100}%`, backgroundColor: urgency.color },
           ]}
         />
       </View>
 
       <Text style={styles.caption}>
-        Estimated time in direct sun before burn risk, based on your skin type
-        and current UV. Reapply sunscreen before this window closes.
+        Estimated time in direct sun before burn risk, based on your skin type and current UV.
+        Reapply sunscreen before this window closes.
       </Text>
     </View>
   );

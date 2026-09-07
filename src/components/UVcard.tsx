@@ -1,5 +1,5 @@
+import BurnTimeIndicator from "@/components/BurnTimeIndicator";
 import { SkinType } from "@/types/skin";
-import { formatBurnTime, getMinutesToBurn } from "@/utils/skin";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -62,12 +62,7 @@ export default function UVCard({
       </View>
 
       {skinType && isPremium && (
-        <View style={styles.burnTimeRow}>
-          <Ionicons name="body" size={18} color="#64748B" />
-          <Text style={styles.burnTimeText}>
-            Burn time: {formatBurnTime(getMinutesToBurn(skinType, uvIndex))}
-          </Text>
-        </View>
+        <BurnTimeIndicator skinType={skinType} uvIndex={uvIndex} />
       )}
 
       {skinType && !isPremium && (
@@ -204,17 +199,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  burnTimeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    gap: 6,
-  },
-  burnTimeText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#334155",
-  },
   burnTimeLockedRow: {
     flexDirection: "row",
     alignItems: "center",
