@@ -1,21 +1,30 @@
 import * as Location from "expo-location";
-import { useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import * as Notifications from "expo-notifications";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
+import { RefreshControl } from "react-native";
 
 import AdviceCard from "@/components/Advicecard";
 import Header from "@/components/Header";
 import HourlyForecast from "@/components/HourlyForecast";
-import SkinTypeSummary from "@/components/SkinTypeSummary";
 import UVCard from "@/components/UVcard";
 import UVChart from "@/components/uvchart";
+import SunProtectionCard from "@/components/SunProtection";
+import PremiumBanner from "@/components/PremiumBanner";
 import { HourlyForecastEntry, OpenMeteoResponse } from "@/types/weather";
 import { getIsPremium } from "@/utils/premium";
 import { Ionicons } from "@expo/vector-icons";
 
 import { SkinType } from "@/types/skin";
-import { getSkinType } from "@/utils/skin";
+import {
+  getSkinType,
+  setSkinType,
+  getMinutesToBurn,
+  tickExposure,
+  resetExposure,
+} from "@/utils/skin";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -26,18 +35,9 @@ function getUvLevel(uv: number) {
 }
 
 function getAdvice(uv: number): string[] {
-  if (uv <= 2) {
-    return ["Enjoy the sunshine", "Wear sunglasses"];
-  }
-
-  if (uv <= 5) {
-    return ["Apply SPF 30+", "Drink water"];
-  }
-
-  if (uv <= 7) {
-    return ["Wear a hat", "Apply SPF 50+", "Stay hydrated"];
-  }
-
+  if (uv <= 2) return ["Enjoy the sunshine", "Wear sunglasses"];
+  if (uv <= 5) return ["Apply SPF 30+", "Drink water"];
+  if (uv <= 7) return ["Wear a hat", "Apply SPF 50+", "Stay hydrated"];
   return [
     "Avoid direct sunlight",
     "Stay indoors if possible",
@@ -46,11 +46,11 @@ function getAdvice(uv: number): string[] {
 }
 
 function getUvColor(uv: number): string {
-  if (uv <= 2) return "#4CAF50"; // Green
-  if (uv <= 5) return "#FBC02D"; // Yellow
-  if (uv <= 7) return "#FB8C00"; // Orange
-  if (uv <= 10) return "#E53935"; // Red
-  return "#8E24AA"; // Purple
+  if (uv <= 2) return "#4CAF50";
+  if (uv <= 5) return "#FBC02D";
+  if (uv <= 7) return "#FB8C00";
+  if (uv <= 10) return "#E53935";
+  return "#8E24AA";
 }
 
 function getWeatherCondition(code: number): string {
@@ -82,11 +82,13 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [temperature, setTemperature] = useState(0);
   const [weatherCode, setWeatherCode] = useState(0);
-  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>(
-    [],
-  );
+  const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [skinType, setSkinTypeState] = useState<SkinType | null>(null);
+  const [remainingBurnMinutes, setRemainingBurnMinutes] = useState<number | null>(null);
+
+  const lastTickRef = useRef<number>(Date.now());
+  const hasBurnedRef = useRef(false);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
@@ -112,7 +114,6 @@ export default function HomeScreen() {
       const hourlyUv = data.hourly.uv_index;
       const hourlyTemp = data.hourly.temperature_2m;
       const hourlyWeather = data.hourly.weather_code;
-
       const currentTime: string = data.current.time;
 
       const upcoming = hourlyTimes
@@ -151,10 +152,7 @@ export default function HomeScreen() {
       }
 
       const { latitude, longitude } = currentLocation.coords;
-      const address = await Location.reverseGeocodeAsync({
-        latitude,
-        longitude,
-      });
+      const address = await Location.reverseGeocodeAsync({ latitude, longitude });
 
       if (address.length > 0) {
         const place = address[0];
@@ -173,20 +171,27 @@ export default function HomeScreen() {
     setRefreshing(false);
   }
 
+  async function handleSelectSkinType(type: SkinType) {
+    await setSkinType(type);
+    setSkinTypeState(type);
+  }
+
+  async function handleReapply() {
+    await resetExposure();
+    setRemainingBurnMinutes(null);
+    hasBurnedRef.current = false;
+    lastTickRef.current = Date.now();
+  }
+
   useEffect(() => {
     getLocation();
-    const interval = setInterval(
-      () => {
-        getLocation();
-      },
-      15 * 60 * 1000,
-    );
+    const interval = setInterval(() => {
+      getLocation();
+    }, 15 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Re-read premium status and skin type every time Home regains focus
-  // (e.g. after the user changes them in Settings)
   useFocusEffect(
     useCallback(() => {
       getIsPremium().then(setIsPremium);
@@ -194,13 +199,62 @@ export default function HomeScreen() {
     }, []),
   );
 
+  // Burn exposure ticking — only runs for premium users with a skin type set
+  useEffect(() => {
+    if (!isPremium || !skinType) {
+      setRemainingBurnMinutes(null);
+      return;
+    }
+
+    let cancelled = false;
+    lastTickRef.current = Date.now();
+    hasBurnedRef.current = false;
+
+    async function runTick() {
+      const now = Date.now();
+      const elapsedMinutes = (now - lastTickRef.current) / 60000;
+      lastTickRef.current = now;
+
+      const fraction = await tickExposure(skinType!, uvIndex, elapsedMinutes);
+      if (cancelled) return;
+
+      const totalMinutes = getMinutesToBurn(skinType!, uvIndex);
+      if (totalMinutes === null) {
+        setRemainingBurnMinutes(null);
+        return;
+      }
+
+      const remaining = Math.max(0, Math.round(totalMinutes * (1 - fraction)));
+      setRemainingBurnMinutes(remaining);
+
+      if (fraction >= 1 && !hasBurnedRef.current) {
+        hasBurnedRef.current = true;
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Reapply Sunscreen Now ☀️",
+            body: "Your estimated burn window has ended.",
+          },
+          trigger: null,
+        });
+      } else if (fraction < 1) {
+        hasBurnedRef.current = false;
+      }
+    }
+
+    runTick();
+    const interval = setInterval(runTick, 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isPremium, skinType, uvIndex]);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <Header location={locationName} lastUpdated={lastUpdated} />
 
@@ -211,14 +265,19 @@ export default function HomeScreen() {
           level={getUvLevel(uvIndex)}
           color={getUvColor(uvIndex)}
           onRefresh={onRefresh}
+          skinType={skinType}
+          isPremium={isPremium}
           temperature={temperature}
           weather={getWeatherCondition(weatherCode)}
           weatherIcon={getWeatherIcon(weatherCode)}
-          skinType={skinType}
-          isPremium={isPremium}
         />
 
-        <SkinTypeSummary skinType={skinType} />
+        <SunProtectionCard
+          skinType={skinType}
+          onSelectSkinType={handleSelectSkinType}
+          isPremium={isPremium}
+          uvColor={getUvColor(uvIndex)}
+        />
 
         <HourlyForecast
           data={hourlyForecast}
@@ -229,6 +288,8 @@ export default function HomeScreen() {
         <UVChart data={hourlyForecast} />
 
         <AdviceCard advice={getAdvice(uvIndex)} />
+
+        <PremiumBanner isPremium={isPremium} />
       </ScrollView>
     </SafeAreaView>
   );

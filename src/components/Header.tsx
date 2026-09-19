@@ -1,4 +1,5 @@
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { FigmaColors } from "@/constants/theme";
 
 type HeaderProps = {
   location: string;
@@ -7,50 +8,38 @@ type HeaderProps = {
 
 export default function Header({ location, lastUpdated }: HeaderProps) {
   return (
-    <>
-      <Text style={styles.logo}>☀️</Text>
-
-      <Text style={styles.title}>SunSafe AU</Text>
-
-      <Text style={styles.location}>
-        {location}
-      </Text>
-
-      <Text style={styles.updated}>
-    
-      Last Updated: {lastUpdated}
-    </Text>
-    </>
+    <View style={styles.row}>
+      <View>
+        <Text style={styles.location}>{location}</Text>
+        <Text style={styles.updated}>Updated {lastUpdated}</Text>
+      </View>
+      <View style={styles.avatar} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  logo: {
-    fontSize: 60,
-    textAlign: "center",
-    marginBottom: 10,
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 20,
   },
-
-  title: {
-    fontSize: 36,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#1E293B",
-  },
-
   location: {
-    fontSize: 18,
-    textAlign: "center",
-    color: "#64748B",
-    marginBottom: 30,
+    fontSize: 20,
+    fontWeight: "700",
+    color: FigmaColors.textPrimary,
   },
-
   updated: {
-  fontSize: 16,
-  textAlign: "center",
-  color: "#64748B",
-  marginBottom: 20,
-},
-
+    fontSize: 12,
+    fontWeight: "500",
+    color: FigmaColors.textSecondary,
+    marginTop: 2,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "white",
+  },
 });
-

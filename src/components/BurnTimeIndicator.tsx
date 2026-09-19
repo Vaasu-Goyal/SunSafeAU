@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -7,7 +8,6 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
-import { useEffect } from "react";
 
 import { formatBurnTime } from "@/utils/skin";
 import { useBurnExposure } from "@/hooks/useBurnExposure";
@@ -31,7 +31,7 @@ function getUrgency(remainingFraction: number, minutesToBurn: number | null) {
 }
 
 export default function BurnTimeIndicator({ skinType, uvIndex }: BurnTimeIndicatorProps) {
-  const { exposureFraction, minutesToBurn } = useBurnExposure(skinType, uvIndex);
+  const { exposureFraction, minutesToBurn, resetExposure } = useBurnExposure(skinType, uvIndex);
   const remainingFraction = Math.max(0, 1 - exposureFraction);
   const urgency = getUrgency(remainingFraction, minutesToBurn);
   const pulse = useSharedValue(1);
@@ -76,6 +76,16 @@ export default function BurnTimeIndicator({ skinType, uvIndex }: BurnTimeIndicat
         Estimated time in direct sun before burn risk, based on your skin type and current UV.
         Reapply sunscreen before this window closes.
       </Text>
+
+      {minutesToBurn !== null && (
+        <Pressable
+          style={({ pressed }) => [styles.resetButton, pressed && styles.resetButtonPressed]}
+          onPress={resetExposure}
+        >
+          <Ionicons name="refresh" size={14} color="#3B82F6" />
+          <Text style={styles.resetButtonText}>I just reapplied sunscreen</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -106,4 +116,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 8,
   },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#3B82F6",
+  },
+  resetButtonPressed: { opacity: 0.6 },
+  resetButtonText: { fontSize: 13, fontWeight: "600", color: "#3B82F6" },
 });

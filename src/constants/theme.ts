@@ -63,3 +63,28 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+
+
+export const FigmaColors = {
+  pageBackground: "#FFF4D6",
+  heroGradientStart: "#FF8B29",
+  heroGradientEnd: "#E53935",
+  cardShadow: "rgba(0,0,0,0.05)",
+  textPrimary: "#1E293B",
+  textSecondary: "#64748B",
+  textMuted: "#94A3B8",
+  chipInactiveBg: "#F1F5F9",
+  chipActiveBg: "#3B82F6",
+  divider: "#E2E8F0",
+  urgencyLow: "#22C55E",
+  premiumGradientStart: "#28293D",
+  premiumGradientEnd: "#4D3471",
+} as const;
+
+export const FigmaRadius = {
+  hero: 28,
+  card: 20,
+  small: 18,
+  pill: 100,
+} as const;
