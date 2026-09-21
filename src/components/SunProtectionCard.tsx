@@ -11,6 +11,7 @@ type SunProtectionCardProps = {
   onSelectSkinType: (type: SkinType) => void;
   isPremium: boolean;
   uvColor: string;
+  uvIndex: number;
 };
 
 export default function SunProtectionCard({
@@ -18,6 +19,7 @@ export default function SunProtectionCard({
   onSelectSkinType,
   isPremium,
   uvColor,
+  uvIndex,
 }: SunProtectionCardProps) {
   return (
     <View style={styles.card}>
@@ -31,14 +33,22 @@ export default function SunProtectionCard({
             <Pressable
               key={info.type}
               onPress={() => onSelectSkinType(info.type)}
-              style={[
-                styles.chip,
-                { backgroundColor: isSelected ? FigmaColors.chipActiveBg : FigmaColors.chipInactiveBg },
-              ]}
+              style={styles.chipWrapper}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                {info.type}
-              </Text>
+              <View
+                style={[
+                  styles.chip,
+                  { backgroundColor: info.color },
+                  isSelected && styles.chipSelected,
+                ]}
+              >
+                {isSelected && (
+                  <View style={styles.checkBadge}>
+                    <Ionicons name="checkmark" size={12} color="white" />
+                  </View>
+                )}
+              </View>
+              <Text style={styles.chipLabel}>{info.type}</Text>
             </Pressable>
           );
         })}
@@ -47,7 +57,7 @@ export default function SunProtectionCard({
       <View style={styles.divider} />
 
       {skinType && isPremium && (
-        <BurnTimeIndicator skinType={skinType} uvIndex={0} />
+        <BurnTimeIndicator skinType={skinType} uvIndex={uvIndex} />
       )}
 
       {skinType && !isPremium && (
@@ -95,10 +105,33 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 16, fontWeight: "600", color: FigmaColors.textSecondary, marginBottom: 12 },
   subheading: { fontSize: 13, fontWeight: "600", color: FigmaColors.textPrimary, marginBottom: 8 },
-  chipRow: { flexDirection: "row", gap: 8 },
-  chip: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center" },
-  chipText: { fontSize: 13, fontWeight: "600", color: FigmaColors.textSecondary },
-  chipTextSelected: { color: "white" },
+  chipRow: { flexDirection: "row", gap: 10 },
+  chipWrapper: { alignItems: "center", gap: 4 },
+  chip: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chipSelected: {
+    borderColor: FigmaColors.chipActiveBg,
+  },
+  checkBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: FigmaColors.chipActiveBg,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chipLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: FigmaColors.textSecondary,
+  },
   divider: { height: 1, backgroundColor: FigmaColors.divider, marginVertical: 16 },
   lockedText: { fontSize: 13, color: FigmaColors.textMuted, fontStyle: "italic", textAlign: "center" },
   teaserContainer: { alignItems: "center" },

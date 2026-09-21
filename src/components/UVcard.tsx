@@ -1,5 +1,3 @@
-import BurnTimeIndicator from "@/components/BurnTimeIndicator";
-import { SkinType } from "@/types/skin";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -15,8 +13,6 @@ type UVCardProps = {
   temperature: number;
   weather: string;
   weatherIcon: keyof typeof Ionicons.glyphMap;
-  skinType: SkinType | null;
-  isPremium: boolean;
 };
 
 export default function UVCard({
@@ -24,13 +20,10 @@ export default function UVCard({
   loading,
   error,
   level,
-  color,
   onRefresh,
   temperature,
   weather,
   weatherIcon,
-  skinType,
-  isPremium,
 }: UVCardProps) {
   return (
     <View style={styles.wrapper}>
@@ -63,19 +56,6 @@ export default function UVCard({
           </View>
         </View>
       </LinearGradient>
-
-      {skinType && isPremium && (
-        <BurnTimeIndicator skinType={skinType} uvIndex={uvIndex} />
-      )}
-
-      {skinType && !isPremium && (
-        <View style={styles.burnTimeLockedRow}>
-          <Ionicons name="lock-closed" size={16} color="#94A3B8" />
-          <Text style={styles.burnTimeLockedText}>
-            Unlock your personalized burn time with Premium
-          </Text>
-        </View>
-      )}
 
       <View style={styles.buttonContainer}>
         <Pressable
@@ -110,7 +90,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
-    elevation: 8, // Android fallback, since shadow* props render inconsistently there
+    elevation: 8,
   },
   uvLabel: {
     color: "rgba(255,255,255,0.85)",
@@ -177,17 +157,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  burnTimeLockedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-    gap: 6,
-    alignSelf: "center",
-  },
-  burnTimeLockedText: {
-    fontSize: 13,
-    color: "#94A3B8",
-    fontStyle: "italic",
   },
 });

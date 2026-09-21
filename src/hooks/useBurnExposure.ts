@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import * as Notifications from "expo-notifications";
 
 import { SkinType } from "@/types/skin";
 import {
@@ -13,6 +14,7 @@ const TICK_INTERVAL_MS = 60 * 1000; // check in every minute
 export function useBurnExposure(skinType: SkinType | null, uvIndex: number) {
   const [exposureFraction, setExposureFraction] = useState(0);
   const lastTickRef = useRef(Date.now());
+  const hasNotifiedRef = useRef(false);
 
   useEffect(() => {
     getExposureFraction().then(setExposureFraction);
@@ -28,6 +30,19 @@ export function useBurnExposure(skinType: SkinType | null, uvIndex: number) {
 
       const next = await tickExposure(skinType, uvIndex, elapsedMinutes);
       setExposureFraction(next);
+
+      if (next >= 1 && !hasNotifiedRef.current) {
+        hasNotifiedRef.current = true;
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "Reapply Sunscreen Now ☀️",
+            body: "Your estimated burn window has ended.",
+          },
+          trigger: null,
+        });
+      } else if (next < 1) {
+        hasNotifiedRef.current = false;
+      }
     }, TICK_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -35,7 +50,8 @@ export function useBurnExposure(skinType: SkinType | null, uvIndex: number) {
 
   async function resetExposure() {
     await resetExposureStorage();
-    lastTickRef.current = Date.now(); // don't count pre-reset time on the next tick
+    lastTickRef.current = Date.now();
+    hasNotifiedRef.current = false;
     setExposureFraction(0);
   }
 

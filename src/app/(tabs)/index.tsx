@@ -11,7 +11,7 @@ import Header from "@/components/Header";
 import HourlyForecast from "@/components/HourlyForecast";
 import UVCard from "@/components/UVcard";
 import UVChart from "@/components/uvchart";
-import SunProtectionCard from "@/components/SunProtection";
+import SunProtectionCard from "@/components/SunProtectionCard";
 import PremiumBanner from "@/components/PremiumBanner";
 import { HourlyForecastEntry, OpenMeteoResponse } from "@/types/weather";
 import { getIsPremium } from "@/utils/premium";
@@ -256,7 +256,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <Header location={locationName} lastUpdated={lastUpdated} />
+        <Header location={locationName} lastUpdated={lastUpdated} isPremium={isPremium} />
 
         <UVCard
           uvIndex={uvIndex}
@@ -265,8 +265,6 @@ export default function HomeScreen() {
           level={getUvLevel(uvIndex)}
           color={getUvColor(uvIndex)}
           onRefresh={onRefresh}
-          skinType={skinType}
-          isPremium={isPremium}
           temperature={temperature}
           weather={getWeatherCondition(weatherCode)}
           weatherIcon={getWeatherIcon(weatherCode)}
@@ -277,6 +275,7 @@ export default function HomeScreen() {
           onSelectSkinType={handleSelectSkinType}
           isPremium={isPremium}
           uvColor={getUvColor(uvIndex)}
+          uvIndex={uvIndex}
         />
 
         <HourlyForecast
