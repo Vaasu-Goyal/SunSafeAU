@@ -29,7 +29,7 @@ export default function AppTabs() {
             <TabButton>Explore</TabButton>
           </TabTrigger>
 
-          <TabTrigger name="settings" href="/setting" asChild>
+          <TabTrigger name="settings" href="/settings" asChild>
             <TabButton>Settings</TabButton>
           </TabTrigger>
         </CustomTabList>

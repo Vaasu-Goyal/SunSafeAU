@@ -1,12 +1,11 @@
 import { ScrollView, View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { HourlyForecastEntry } from "@/types/weather"; 
-
+import { HourlyForecastEntry } from "@/types/weather";
+import { FigmaColors, FigmaRadius } from "@/constants/theme";
 
 type HourlyForecastProps = {
   data: HourlyForecastEntry[];
   getWeatherIcon: (code: number) => keyof typeof Ionicons.glyphMap;
-  getUvColor: (uv: number) => string;
 };
 
 function formatHour(isoTime: string): string {
@@ -16,32 +15,48 @@ function formatHour(isoTime: string): string {
   return `${displayHour}${period}`;
 }
 
-export default function HourlyForecast({
-  data,
-  getWeatherIcon,
-  getUvColor,
-}: HourlyForecastProps) {
+function getWeatherIconForHour(
+  code: number,
+  isNight: boolean,
+  getWeatherIcon: (code: number) => keyof typeof Ionicons.glyphMap,
+): keyof typeof Ionicons.glyphMap {
+  if (isNight && (code === 0 || code === 1)) return "moon";
+  if (isNight && code === 2) return "cloudy-night"; // no distinct partly-cloudy-night icon; falls back safely
+  return getWeatherIcon(code);
+}
+
+function getIconBadgeColor(code: number, isNight: boolean): string {
+  if (isNight) {
+    if (code === 0 || code === 1) return "#5B6B9E";
+    if (code === 2) return "#7C8AA8";
+  }
+  if (code === 0 || code === 1) return "#FDB750";
+  if (code === 2) return "#F0C987";
+  if (code === 3) return "#CBD5E1";
+  if (code >= 51 && code <= 67) return "#93C5FD";
+  if (code >= 71 && code <= 77) return "#E2E8F0";
+  return FigmaColors.chipInactiveBg;
+}
+
+export default function HourlyForecast({ data, getWeatherIcon }: HourlyForecastProps) {
   if (data.length === 0) return null;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Hourly Forecast</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {data.map((entry, index) => (
           <View key={index} style={styles.hourCard}>
             <Text style={styles.hourText}>{formatHour(entry.time)}</Text>
-            <Ionicons
-              name={getWeatherIcon(entry.weatherCode)}
-              size={22}
-              color="#64748B"
-            />
-            <Text style={[styles.uvText, { color: getUvColor(entry.uv) }]}>
-              {entry.uv}
-            </Text>
+
+            <View style={[styles.iconBadge, { backgroundColor: getIconBadgeColor(entry.weatherCode, entry.isNight) }]}>
+              <Ionicons
+                name={getWeatherIconForHour(entry.weatherCode, entry.isNight, getWeatherIcon)}
+                size={18}
+                color="white"
+              />
+            </View>
+
             <Text style={styles.tempText}>{entry.temp}°</Text>
           </View>
         ))}
@@ -51,41 +66,24 @@ export default function HourlyForecast({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#475569",
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  scrollContent: {
-    gap: 10,
-    paddingHorizontal: 4,
-  },
+  container: { marginBottom: 20 },
+  title: { fontSize: 16, fontWeight: "600", color: FigmaColors.textSecondary, marginBottom: 10, marginLeft: 4 },
+  scrollContent: { gap: 10, paddingHorizontal: 4 },
   hourCard: {
     backgroundColor: "white",
-    borderRadius: 14,
-    padding: 12,
+    borderRadius: FigmaRadius.small,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
     alignItems: "center",
-    minWidth: 64,
+    minWidth: 68,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 3,
   },
-  hourText: {
-    fontSize: 13,
-    color: "#64748B",
-    marginBottom: 6,
-  },
-  uvText: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 6,
-  },
-  tempText: {
-    fontSize: 13,
-    color: "#64748B",
-    marginTop: 2,
-  },
+  hourText: { fontSize: 12, fontWeight: "600", color: FigmaColors.textMuted },
+  iconBadge: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center" },
+  tempText: { fontSize: 15, fontWeight: "700", color: FigmaColors.textPrimary },
 });

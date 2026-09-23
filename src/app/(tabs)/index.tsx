@@ -1,10 +1,8 @@
 import * as Location from "expo-location";
-import * as Notifications from "expo-notifications";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
-import { RefreshControl } from "react-native";
 
 import AdviceCard from "@/components/Advicecard";
 import Header from "@/components/Header";
@@ -18,13 +16,7 @@ import { getIsPremium } from "@/utils/premium";
 import { Ionicons } from "@expo/vector-icons";
 
 import { SkinType } from "@/types/skin";
-import {
-  getSkinType,
-  setSkinType,
-  getMinutesToBurn,
-  tickExposure,
-  resetExposure,
-} from "@/utils/skin";
+import { getSkinType, setSkinType } from "@/utils/skin";
 
 function getUvLevel(uv: number) {
   if (uv <= 2) return "Low";
@@ -73,6 +65,16 @@ function getWeatherIcon(code: number): keyof typeof Ionicons.glyphMap {
   return "help-circle";
 }
 
+function isNightAt(time: string, daily: OpenMeteoResponse["daily"]): boolean {
+  const date = time.split("T")[0];
+  const dayIndex = daily.time.findIndex((d) => d === date);
+  if (dayIndex === -1) return false; // fallback: assume day if we can't match
+
+  const sunrise = daily.sunrise[dayIndex];
+  const sunset = daily.sunset[dayIndex];
+  return time < sunrise || time >= sunset; // ISO strings compare correctly lexically here
+}
+
 export default function HomeScreen() {
   const [uvIndex, setUvIndex] = useState(8);
   const [loading, setLoading] = useState(true);
@@ -85,17 +87,13 @@ export default function HomeScreen() {
   const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastEntry[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [skinType, setSkinTypeState] = useState<SkinType | null>(null);
-  const [remainingBurnMinutes, setRemainingBurnMinutes] = useState<number | null>(null);
-
-  const lastTickRef = useRef<number>(Date.now());
-  const hasBurnedRef = useRef(false);
 
   async function fetchUV(latitude: number, longitude: number) {
     try {
       setLoading(true);
 
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&forecast_days=2&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=uv_index,temperature_2m,weather_code&hourly=uv_index,temperature_2m,weather_code&daily=sunrise,sunset&forecast_days=2&timezone=auto`,
       );
 
       const data: OpenMeteoResponse = await response.json();
@@ -122,6 +120,7 @@ export default function HomeScreen() {
           uv: Math.round(hourlyUv[i]),
           temp: Math.round(hourlyTemp[i]),
           weatherCode: hourlyWeather[i],
+          isNight: isNightAt(t, data.daily),
         }))
         .filter((entry) => entry.time >= currentTime)
         .slice(0, 8);
@@ -176,13 +175,6 @@ export default function HomeScreen() {
     setSkinTypeState(type);
   }
 
-  async function handleReapply() {
-    await resetExposure();
-    setRemainingBurnMinutes(null);
-    hasBurnedRef.current = false;
-    lastTickRef.current = Date.now();
-  }
-
   useEffect(() => {
     getLocation();
     const interval = setInterval(() => {
@@ -198,57 +190,6 @@ export default function HomeScreen() {
       getSkinType().then(setSkinTypeState);
     }, []),
   );
-
-  // Burn exposure ticking — only runs for premium users with a skin type set
-  useEffect(() => {
-    if (!isPremium || !skinType) {
-      setRemainingBurnMinutes(null);
-      return;
-    }
-
-    let cancelled = false;
-    lastTickRef.current = Date.now();
-    hasBurnedRef.current = false;
-
-    async function runTick() {
-      const now = Date.now();
-      const elapsedMinutes = (now - lastTickRef.current) / 60000;
-      lastTickRef.current = now;
-
-      const fraction = await tickExposure(skinType!, uvIndex, elapsedMinutes);
-      if (cancelled) return;
-
-      const totalMinutes = getMinutesToBurn(skinType!, uvIndex);
-      if (totalMinutes === null) {
-        setRemainingBurnMinutes(null);
-        return;
-      }
-
-      const remaining = Math.max(0, Math.round(totalMinutes * (1 - fraction)));
-      setRemainingBurnMinutes(remaining);
-
-      if (fraction >= 1 && !hasBurnedRef.current) {
-        hasBurnedRef.current = true;
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Reapply Sunscreen Now ☀️",
-            body: "Your estimated burn window has ended.",
-          },
-          trigger: null,
-        });
-      } else if (fraction < 1) {
-        hasBurnedRef.current = false;
-      }
-    }
-
-    runTick();
-    const interval = setInterval(runTick, 60 * 1000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [isPremium, skinType, uvIndex]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -270,6 +211,8 @@ export default function HomeScreen() {
           weatherIcon={getWeatherIcon(weatherCode)}
         />
 
+        <AdviceCard advice={getAdvice(uvIndex)} uvColor={getUvColor(uvIndex)} />
+
         <SunProtectionCard
           skinType={skinType}
           onSelectSkinType={handleSelectSkinType}
@@ -278,15 +221,9 @@ export default function HomeScreen() {
           uvIndex={uvIndex}
         />
 
-        <HourlyForecast
-          data={hourlyForecast}
-          getWeatherIcon={getWeatherIcon}
-          getUvColor={getUvColor}
-        />
+        <HourlyForecast data={hourlyForecast} getWeatherIcon={getWeatherIcon} />
 
         <UVChart data={hourlyForecast} />
-
-        <AdviceCard advice={getAdvice(uvIndex)} />
 
         <PremiumBanner isPremium={isPremium} />
       </ScrollView>

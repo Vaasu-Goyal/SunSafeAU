@@ -12,7 +12,7 @@ export default function SkinTypeSummary({ skinType }: SkinTypeSummaryProps) {
   const info = skinType ? SKIN_TYPES.find((s) => s.type === skinType) : null;
 
   return (
-    <Pressable style={styles.row} onPress={() => router.push("/setting")}>
+    <Pressable style={styles.row} onPress={() => router.push("/settings")}>
       {info ? (
         <>
           <View style={[styles.swatch, { backgroundColor: info.color }]} />
